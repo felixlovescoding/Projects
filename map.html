@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geocoding Service</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+      /* Always set the map height explicitly to define the size of the div
+      * element that contains the map. */
+      #map {
+      	height: 100%;
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+      	height: 100%;
+      	margin: 0;
+      	padding: 0;
+      }
+      #floating-panel {
+      	position: absolute;
+      	top: 0;
+      	left: 0%;
+      	z-index: 0;
+      	background-color: #fff;
+      	padding: 5px;
+      	border: 1px solid #999;
+      	text-align: center;
+      	font-family: 'Roboto','sans-serif';
+      	line-height: 30px;
+      	padding-left: 10px;
+      }
+  </style>
+</head>
+<body>
+<div id="floating-panel">
+    <input id="address" type="textbox" value="São Paulo, Brasil">
+    <input id="submit" type="button" value="Geocode">
+</div>
+<div id="map"></div>
+<script>var exports = {};</script>
+
+<script>
+
+
+ "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var map;
+var marker;
+var geocoder;
+var responseDiv;
+var response;
+var markers = [];
+
+
+//data for all universities within Ontario
+var locations = [
+    ['Algoma University', 46.501453047714655, -84.28730285903904, 'https://algomau.ca', 'https://algomau.ca'],
+    ['Brock University', 43.1190, -79.2490, 'https://brocku.ca', 'https://brocku.ca'],
+    ['Carleton University', 45.3876, -75.6960, 'https://carleton.ca', 'https://carleton.ca'],
+    ['University of Guelph', 43.53227334666375, -80.22691256999917, 'https://www.uoguelph.ca', 'https://www.uoguelph.ca'],
+    ['Université de Hearst', 49.6844, -83.6669, 'http://www.uhearst.ca', 'http://www.uhearst.ca'],
+    ['Lakehead University', 48.4211, -89.2607, 'https://www.lakeheadu.ca', 'https://www.lakeheadu.ca'],
+    ['Laurentian University', 46.4672, -80.9757, 'https://laurentian.ca', 'https://laurentian.ca'],
+    ['McMaster University', 43.2609, -79.9192, 'https://www.mcmaster.ca', 'https://www.mcmaster.ca'],
+    ['Nipissing University', 46.3433, -79.4917, 'https://www.nipissingu.ca', 'https://www.nipissingu.ca'],
+    ['OCAD University', 43.6532, -79.3915, 'https://www.ocadu.ca', 'https://www.ocadu.ca', 16],
+    ['Université de Ontario français', 43.644947, -79.368753, 'https://uontario.ca', 'https://uontario.ca'],
+    ['Ontario Tech University', 43.9456, -78.8968, 'https://ontariotechu.ca', 'https://ontariotechu.ca'],
+    ['University of Ottawa', 45.4231, -75.6831, 'https://www.uottawa.ca/en', 'https://www.uottawa.ca/en'],
+    ['Queens University', 44.2253, -76.4951, 'https://www.queensu.ca', 'https://www.queensu.ca'],
+    ['Royal Military College of Canada', 44.2339, -76.4675, 'https://www.rmc-cmr.ca/en', 'https://www.rmc-cmr.ca/en'],
+    ['University of Toronto St.George campus', 43.6629, -79.3957, 'https://www.utoronto.ca/university-life/campuses/st-george', 'https://www.utoronto.ca/university-life/campuses/st-george'],
+    ['University of Toronto Mississauga Campus', 43.5483, -79.6627, 'https://www.utm.utoronto.ca', 'https://www.utm.utoronto.ca'],
+    ['University of Scarborough Campus', 43.7830, -79.1874, 'https://www.utsc.utoronto.ca/home', 'https://www.utsc.utoronto.ca/home'],
+    ['Toronto Metropolitan University (formerly Ryerson University)', 43.6577, 79.3788, 'https://www.torontomu.ca', 'https://www.torontomu.ca'],
+    ['Trent University', 44.3582, -78.2888, 'https://www.trentu.ca', 'https://www.trentu.ca'],
+    ['University of Waterloo', 43.4723, -80.5449, 'https://uwaterloo.ca', 'https://uwaterloo.ca'],
+    ['Western University', 43.0096, -81.2737, 'https://www.uwo.ca', 'https://www.uwo.ca'],
+    ['Wilfrid Laurier University', 43.4738, -80.5275, 'https://www.wlu.ca', 'https://www.wlu.ca'],
+    ['University of Windsor', 42.3043, -83.0660, 'https://www.uwindsor.ca', 'https://www.uwindsor.ca'],
+    ['York University', 43.7735, -79.5019, 'https://www.yorku.ca', 'https://www.yorku.ca'],
+        ];
+
+
+//creates a map from Google Maps API
+function initMap() {
+    map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 6,
+        center: { lat: 51.00000, lng: -87.00000 },
+        mapTypeControl: true,
+
+    });
+
+//Imports the google maps GeocoderAPI
+    geocoder = new google.maps.Geocoder();
+    var inputText = document.createElement("input");
+    inputText.type = "text";
+    inputText.placeholder = "Enter a location";
+    var submitButton = document.createElement("input");
+    submitButton.type = "button";
+    submitButton.value = "Geocode";
+    submitButton.classList.add("button", "button-primary");
+    var clearButton = document.createElement("input");
+    clearButton.type = "button";
+    clearButton.value = "Clear";
+    clearButton.classList.add("button", "button-secondary");
+    response = document.createElement("pre");
+    response.id = "response";
+    response.innerText = "";
+    responseDiv = document.createElement("div");
+    responseDiv.id = "response-container";
+    responseDiv.appendChild(response);
+    var instructionsElement = document.createElement("p");
+    instructionsElement.id = "instructions";
+    instructionsElement.innerHTML =
+        "<strong>Instructions</strong>: Enter an address in the textbox to geocode or click on the map to reverse geocode.";
+    map.controls[google.maps.ControlPosition.TOP_LEFT].push(inputText);
+    map.controls[google.maps.ControlPosition.TOP_LEFT].push(submitButton);
+    map.controls[google.maps.ControlPosition.TOP_LEFT].push(clearButton);
+    map.controls[google.maps.ControlPosition.LEFT_TOP].push(instructionsElement);
+    map.controls[google.maps.ControlPosition.LEFT_TOP].push(responseDiv);
+
+google.maps.event.addListener(map, 'click', function(event) {
+		addMarker(event.latLng);
+	  });
+
+	  google.maps.event.addListener(map, 'click', find_closest_marker);
+
+	  for (var i = 0; i < locations.length; i++) {
+		marker = new google.maps.Marker({
+		  title: locations[i][0],
+		  position: new google.maps.LatLng(locations[i][1], locations[i][2]),
+		  map: map
+		});
+
+		 var infowindow = new google.maps.InfoWindow({
+            maxWidth: 350,
+            pixelOffset: new google.maps.Size(-10,-25)
+        });
+
+
+		markers.push(marker);
+
+		google.maps.event.addListener(marker, 'click', (function(marker, i) {
+		  return function() {
+			var content = '<div>' +
+                    '<span>Location: ' + locations[i][0] + '</span>' +
+                    '<span>, Lat: ' + locations[i][1] + '</span>' +
+                    '<span>, Long: ' + locations[i][2] + '</span>' +
+                    '<span>, Website: ' + '<a href=\"' + locations[i][3] + '/"> ' + locations[i][4] +
+                    '</div>';
+
+                infowindow.setContent(content);
+                infowindow.open(map);
+                infowindow.setPosition(new google.maps.LatLng(locations[i][1], locations[i][2]));
+		  }
+		})(marker, i));
+	  }
+
+	  function addMarker(location) {
+	  var marker = new google.maps.Marker({
+		title: 'User added marker',
+
+		icon: {
+		  path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+		  scale: 5
+		},
+		position: location,
+		map: map
+	  });
+
+	}
+
+//results a result when the user searches up an address in the search bar (presses a button)
+    submitButton.addEventListener("click", function () {
+                var result = geocode({ address: inputText.value});
+                alert(result);
+                find_closest_marker(JSON.stringify(result[0].geometry.location, null, 2));
+
+    });
+
+//clears the search bar
+    clearButton.addEventListener("click", function () {
+        clear();
+    });
+    clear();
+}
+function clear() {
+    responseDiv.style.display = "none";
+}
+
+//outputs the Lat and Lng coordinates of the userClick on the map
+function geocode(request) {
+    clear();
+    var result = geocoder
+        .geocode(request)
+        .then(function (result) {
+        var results = result.results;
+        map.setCenter(results[0].geometry.location);
+        responseDiv.style.display = "block";
+        response.innerText = JSON.stringify(results[0].geometry.location, null, 2);
+        return results[0].geometry.location;
+
+    })
+        .catch(function (e) {
+        alert("Geocode was not successful for the following reason: " + e);
+    });
+        return result;
+    }
+window.initMap = initMap;
+
+
+function find_closest_marker(event) {
+	  var distances = [];
+	  var closest = -1;
+	  var secondClosest = -1;
+	  var thirdClosest = -1;
+	  for (var i = 0; i < markers.length; i++) {
+		var d = google.maps.geometry.spherical.computeDistanceBetween(markers[i].position, event.latLng);
+		distances[i] = d;
+		for(var k = 0; k < 3; k++){
+		if (closest == -1 || d < distances[closest]) {
+		  closest = i;
+		  secondClosest = i+1;
+		  thirdClosest = i+2;
+		}
+		}
+	  }
+	  alert('Closest university is: ' + markers[closest].getTitle());
+	  alert('Second closest university is: ' + markers[secondClosest].getTitle());
+	  alert('Third closest university is: ' + markers[thirdClosest].getTitle());
+	}
+
+    //Url to access google maps using the API key i created
+
+
+
+
+</script>
+<script
+
+        src="http://maps.googleapis.com/maps/api/js?libraries=geometry&sensor=false&key=AIzaSyCE4RCKMAKGTllZYqEkrAo8Z1VH4g1uY-M&callback=initMap"
+
+        defer
+></script>
+</body>
+</html>
