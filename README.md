@@ -1,4 +1,5 @@
-# Readme
+# Instructions
+
 **If your goal is simply to test out the functionality of the app disregarding the GUI and watermarks. Simply run the **map.html** file in your IDE to open the map in your local browser (i.e. Chrome, Firefox). All functions of the app should work accordingly, it just won't look that good.**
 
 
